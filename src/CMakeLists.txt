@@ -195,7 +195,8 @@ set ( SRCS core/util/lnx/os_linux.cpp
            libamdhsacode/amd_hsa_code_util.cpp
            libamdhsacode/amd_hsa_locks.cpp
            libamdhsacode/amd_options.cpp
-           libamdhsacode/amd_hsa_code.cpp )
+           libamdhsacode/amd_hsa_code.cpp
+           libamdhsacode/amd_core_dump.cpp )
 
 target_sources( ${CORE_RUNTIME_TARGET} PRIVATE ${SRCS} )
 
@@ -207,7 +208,7 @@ add_dependencies( ${CORE_RUNTIME_TARGET} amd_trap_handler_v2 )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/core/runtime/blit_shaders )
 add_dependencies( ${CORE_RUNTIME_TARGET} amd_blit_shaders_v2)
 
-if ( NOT DEFINED IMAGE_SUPPORT AND CMAKE_SYSTEM_PROCESSOR MATCHES "i?86|x86_64|amd64|AMD64" )
+if ( NOT DEFINED IMAGE_SUPPORT AND CMAKE_SYSTEM_PROCESSOR MATCHES "i?86|x86_64|amd64|AMD64|loongarch64" )
   set ( IMAGE_SUPPORT ON )
 endif()
 set ( IMAGE_SUPPORT ${IMAGE_SUPPORT} CACHE BOOL "Build with image support (default: ON for x86, OFF elsewise)." )
@@ -280,6 +281,15 @@ endif()
 ## Link dependencies.
 target_link_libraries ( ${CORE_RUNTIME_TARGET} PRIVATE hsakmt::hsakmt PkgConfig::drm)
 target_link_libraries ( ${CORE_RUNTIME_TARGET} PRIVATE elf::elf dl pthread rt )
+
+find_package(rocprofiler-register)
+if(rocprofiler-register_FOUND)
+    target_compile_definitions(${CORE_RUNTIME_TARGET} PRIVATE HSA_ROCPROFILER_REGISTER=1
+                                                              HSA_VERSION_MAJOR=${VERSION_MAJOR}
+                                                              HSA_VERSION_MINOR=${VERSION_MINOR}
+                                                              HSA_VERSION_PATCH=${VERSION_PATCH})
+    target_link_libraries(${CORE_RUNTIME_TARGET} PRIVATE rocprofiler-register::rocprofiler-register)
+endif()
 
 ## Set the VERSION and SOVERSION values
 set_property ( TARGET ${CORE_RUNTIME_TARGET} PROPERTY VERSION "${SO_VERSION_STRING}" )
